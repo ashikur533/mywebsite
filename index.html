@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Location Auto Update Demo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>রিয়েল-টাইম লোকেশন শেয়ার</title>
   <style>
     body {
       font-family: 'SolaimanLipi', Arial, sans-serif;
@@ -11,75 +11,91 @@
       background: #f0f4f8;
       color: #333;
     }
-    h1 {
-      color: #2c3e50;
+    #map {
+      height: 400px;
+      width: 100%;
+      background: #e0e0e0;
+      margin-top: 20px;
+      border-radius: 10px;
     }
-    #status {
-      margin: 15px 0;
-      padding: 10px;
-      background: #e1f5fe;
-      border: 1px solid #81d4fa;
-      border-radius: 5px;
-      max-width: 400px;
+    .user-marker {
+      color: red;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h1>আপনার বর্তমান লোকেশন আপডেট হচ্ছে</h1>
-  <div id="status">লোকেশন নেওয়া হবে...</div>
-  <div id="location"></div>
+  <h1>সবার লোকেশন লাইভ দেখুন (রিয়েল-টাইম)</h1>
+  <div id="status">লোকেশন শেয়ারিং শুরু হচ্ছে...</div>
+  <div id="map"></div>
+  <div id="users"></div>
 
   <script>
-    const statusDiv = document.getElementById('status');
-    const locationDiv = document.getElementById('location');
+    // পিয়ার-টু-পিয়ার কানেকশনের জন্য PeerJS ব্যবহার
+    const peer = new Peer();
+    const connections = {};
+    const allUsers = {};
 
-    function showStatus(message) {
-      statusDiv.textContent = message;
-    }
+    // ম্যাপ ইনিশিয়ালাইজ করুন (Google Maps API ছাড়া Leaflet.js ব্যবহার)
+    const map = L.map('map').setView([23.8103, 90.4125], 10); // ঢাকার координаты
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const markers = {};
 
-    function showLocation(lat, lon) {
-      locationDiv.textContent = `Latitude: ${lat.toFixed(6)}, Longitude: ${lon.toFixed(6)}`;
-    }
-
-    function getLocation() {
-      if (!navigator.geolocation) {
-        showStatus('দুঃখিত, আপনার ব্রাউজার লোকেশন সাপোর্ট করে না।');
-        return;
-      }
-
-      showStatus('লোকেশন নেওয়া হচ্ছে...');
-
-      navigator.geolocation.getCurrentPosition(
+    // PeerJS কানেকশন তৈরি
+    peer.on('open', (id) => {
+      document.getElementById('status').textContent = `আপনার আইডি: ${id}`;
+      
+      // লোকেশন শেয়ারিং শুরু করুন
+      navigator.geolocation.watchPosition(
         (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          showStatus('লোকেশন নেওয়া হয়েছে।');
-          showLocation(lat, lon);
-          console.log(`Lat: ${lat}, Lon: ${lon}`);
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            id: id
+          };
+          
+          // সব কানেক্টেড ইউজারকে লোকেশন পাঠান
+          Object.values(connections).forEach(conn => {
+            conn.send(location);
+          });
+          
+          // নিজের মার্কার আপডেট করুন
+          updateMarker(id, location);
         },
         (error) => {
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              showStatus("আপনি লোকেশন অনুমতি দেননি।");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              showStatus("লোকেশন পাওয়া যায়নি।");
-              break;
-            case error.TIMEOUT:
-              showStatus("লোকেশন নেওয়ার সময় শেষ হয়ে গেছে।");
-              break;
-            default:
-              showStatus("অজানা ত্রুটি হয়েছে।");
-          }
+          console.error("ত্রুটি:", error);
         }
       );
+    });
+
+    // নতুন ইউজার কানেক্ট হলে
+    peer.on('connection', (conn) => {
+      conn.on('data', (data) => {
+        updateMarker(data.id, data);
+      });
+      connections[conn.peer] = conn;
+    });
+
+    // মার্কার আপডেট ফাংশন
+    function updateMarker(userId, location) {
+      if (markers[userId]) {
+        markers[userId].setLatLng([location.lat, location.lng]);
+      } else {
+        markers[userId] = L.marker([location.lat, location.lng])
+          .addTo(map)
+          .bindPopup(`ইউজার: ${userId}`);
+      }
     }
 
-    // প্রথমবার লোকেশন নিন
-    getLocation();
+    // Leaflet.js লোড করুন
+    const leafletScript = document.createElement('script');
+    leafletScript.src = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js';
+    document.head.appendChild(leafletScript);
 
-    // ১০ মিনিট অন্তর লোকেশন আপডেট করুন (১০*৬০*১০০০ = ৬০০০০০ মিলিসেকেন্ড)
-    setInterval(getLocation, 10 * 60 * 1000);
+    // PeerJS লোড করুন
+    const peerScript = document.createElement('script');
+    peerScript.src = 'https://unpkg.com/peerjs@1.3.2/dist/peerjs.min.js';
+    document.head.appendChild(peerScript);
   </script>
 </body>
 </html>
