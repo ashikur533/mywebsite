@@ -1,160 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>সবার লোকেশন লাইভ দেখুন</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    #status {
-      padding: 10px;
-      background: #e3f2fd;
-      border-radius: 5px;
-      margin-bottom: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    th, td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-    th {
-      background-color: #4CAF50;
-      color: white;
-    }
-    .you {
-      font-weight: bold;
-      background-color: #e3f2fd;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>সবার লোকেশন</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f8ff;
+        }
+        #status {
+            padding: 10px;
+            background: #e6f7ff;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
-  <h1>সকল ইউজারের বর্তমান লোকেশন</h1>
-  <div id="status">সিস্টেম প্রস্তুত হচ্ছে...</div>
-  <table id="locationTable">
-    <thead>
-      <tr>
-        <th>ইউজার</th>
-        <th>Latitude</th>
-        <th>Longitude</th>
-        <th>সময়</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+    <h1>সকল ইউজারের লোকেশন</h1>
+    <div id="status">সিস্টেম প্রস্তুত হচ্ছে...</div>
+    <table id="locationTable">
+        <thead>
+            <tr>
+                <th>নাম</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>সময়</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
 
-  <script>
-    // ১. ভেরিয়েবল ডিক্লেয়ার
-    const allUsers = {};
-    let myId = 'user_' + Math.random().toString(36).substr(2, 8);
-    let myName = '';
+    <script>
+        // ১. ভেরিয়েবল ডিক্লেয়ার
+        let allUsers = JSON.parse(localStorage.getItem('allUsers')) || {};
+        const myId = 'user_' + Date.now();
+        let myName = "";
 
-    // ২. স্ট্যাটাস আপডেট ফাংশন
-    function updateStatus(message, isError = false) {
-      const statusDiv = document.getElementById('status');
-      statusDiv.textContent = message;
-      if (isError) {
-        statusDiv.style.color = 'red';
-        statusDiv.style.fontWeight = 'bold';
-      }
-    }
-
-    // ৩. টেবিল আপডেট ফাংশন
-    function updateTable() {
-      const tableBody = document.getElementById('tableBody');
-      tableBody.innerHTML = '';
-      
-      for (const userId in allUsers) {
-        const user = allUsers[userId];
-        const row = document.createElement('tr');
-        if (userId === myId) row.className = 'you';
-        
-        row.innerHTML = `
-          <td>${user.name}</td>
-          <td>${user.lat.toFixed(6)}</td>
-          <td>${user.lng.toFixed(6)}</td>
-          <td>${new Date(user.timestamp).toLocaleTimeString()}</td>
-        `;
-        tableBody.appendChild(row);
-      }
-    }
-
-    // ৪. ইউজার নাম নেওয়া
-    function getUsername() {
-      myName = prompt("আপনার নাম লিখুন:", "User-" + Math.floor(Math.random() * 1000));
-      if (!myName) myName = "Anonymous";
-      return myName;
-    }
-
-    // ৫. লোকেশন শেয়ারিং ফাংশন
-    function shareLocation() {
-      if (!navigator.geolocation) {
-        updateStatus("ত্রুটি: আপনার ব্রাউজার লোকেশন সাপোর্ট করে না", true);
-        return;
-      }
-
-      navigator.geolocation.watchPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            timestamp: Date.now()
-          };
-          
-          // নিজের ডাটা আপডেট
-          allUsers[myId] = {
-            name: myName,
-            ...location
-          };
-          
-          // লোকাল স্টোরেজে সেভ করুন
-          localStorage.setItem('live_location_data', JSON.stringify(allUsers));
-          updateTable();
-        },
-        (error) => {
-          updateStatus("ত্রুটি: " + error.message, true);
-        },
-        { enableHighAccuracy: true }
-      );
-    }
-
-    // ৬. অন্য ইউজারদের ডাটা লোড করুন
-    function loadOtherUsers() {
-      const savedData = localStorage.getItem('live_location_data');
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        
-        // শুধু নতুন/আপডেটেড ডাটা যোগ করুন
-        for (const userId in parsedData) {
-          if (!allUsers[userId] || parsedData[userId].timestamp > allUsers[userId].timestamp) {
-            allUsers[userId] = parsedData[userId];
-          }
+        // ২. স্ট্যাটাস আপডেট ফাংশন
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
         }
-        
-        updateTable();
-      }
-    }
 
-    // ৭. পেজ লোড হলে কাজ শুরু
-    window.onload = function() {
-      myName = getUsername();
-      updateStatus(`স্বাগতম ${myName}! আপনার লোকেশন শেয়ার হচ্ছে...`);
-      
-      shareLocation();
-      loadOtherUsers();
-      
-      // প্রতি ৩ সেকেন্ডে ডাটা চেক করুন
-      setInterval(loadOtherUsers, 3000);
-    };
-  </script>
+        // ৩. টেবিল আপডেট ফাংশন
+        function updateTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            for (const userId in allUsers) {
+                const user = allUsers[userId];
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${user.name}</td>
+                    <td>${user.lat.toFixed(6)}</td>
+                    <td>${user.lng.toFixed(6)}</td>
+                    <td>${new Date(user.timestamp).toLocaleTimeString()}</td>
+                `;
+                tableBody.appendChild(row);
+            }
+        }
+
+        // ৪. নাম ইনপুট নেওয়া
+        function getUsername() {
+            myName = prompt("আপনার নাম লিখুন:", "User-" + Math.floor(Math.random() * 1000));
+            if (!myName) myName = "Anonymous";
+            return myName;
+        }
+
+        // ৫. লোকেশন ট্র্যাকিং শুরু
+        function startLocationSharing() {
+            if (!navigator.geolocation) {
+                updateStatus("ত্রুটি: আপনার ব্রাউজার লোকেশন সাপোর্ট করে না");
+                return;
+            }
+
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    // নিজের ডাটা আপডেট
+                    allUsers[myId] = {
+                        name: myName,
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        timestamp: Date.now()
+                    };
+                    
+                    // লোকাল স্টোরেজে সেভ
+                    localStorage.setItem('allUsers', JSON.stringify(allUsers));
+                    
+                    updateStatus("আপনার লোকেশন শেয়ার হচ্ছে...");
+                    updateTable();
+                },
+                (error) => {
+                    updateStatus("ত্রুটি: " + error.message);
+                },
+                { enableHighAccuracy: true }
+            );
+        }
+
+        // ৬. পেজ লোড হলে কাজ শুরু
+        window.onload = function() {
+            myName = getUsername();
+            updateStatus(`স্বাগতম ${myName}! আপনার লোকেশন শেয়ার হচ্ছে...`);
+            
+            startLocationSharing();
+            updateTable();
+            
+            // প্রতি ৩ সেকেন্ডে ডাটা চেক
+            setInterval(function() {
+                const savedData = localStorage.getItem('allUsers');
+                if (savedData) {
+                    allUsers = JSON.parse(savedData);
+                    updateTable();
+                }
+            }, 3000);
+        };
+    </script>
 </body>
 </html>
