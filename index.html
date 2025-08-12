@@ -1,20 +1,61 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>সবার লোকেশন (IP ভিত্তিক)</title>
+    <title>অর্ডার ফর্ম</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f0f8ff;
+            margin: 20px;
+            background-color: #f5f5f5;
         }
-        #status {
-            padding: 10px;
-            background: #e6f7ff;
-            border-radius: 5px;
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
             margin-bottom: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #orderForm {
+            display: none;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
         table {
             width: 100%;
@@ -36,93 +77,148 @@
     </style>
 </head>
 <body>
-    <h1>সকল ইউজারের লোকেশন (IP ভিত্তিক)</h1>
-    <div id="status">সিস্টেম প্রস্তুত হচ্ছে...</div>
-    <table id="locationTable">
-        <thead>
-            <tr>
-                <th>নাম</th>
-                <th>শহর</th>
-                <th>Country</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-                <th>সময়</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+    <div class="container">
+        <h1>অর্ডার ম্যানেজমেন্ট সিস্টেম</h1>
+        <button id="showFormBtn">নতুন অর্ডার যোগ করুন</button>
+        
+        <div id="orderForm">
+            <h2>অর্ডার ফর্ম</h2>
+            <div class="form-group">
+                <label for="name">নাম:</label>
+                <input type="text" id="name" required>
+            </div>
+            <div class="form-group">
+                <label for="id">আইডি:</label>
+                <input type="text" id="id" required>
+            </div>
+            <div class="form-group">
+                <label for="orderType">অর্ডার টাইপ:</label>
+                <select id="orderType" required>
+                    <option value="">-- নির্বাচন করুন --</option>
+                    <option value="tissue">টিস্যু</option>
+                    <option value="book">বই</option>
+                    <option value="pen">কলম</option>
+                    <option value="hygiene">হাইজিন</option>
+                    <option value="delivery-tissue">ডেলিভারি টিস্যু</option>
+                    <option value="delivery-book">ডেলিভারি বই</option>
+                    <option value="delivery-pen">ডেলিভারি কলম</option>
+                    <option value="delivery-hygiene">ডেলিভারি হাইজিন</option>
+                </select>
+            </div>
+            <button id="submitBtn">সাবমিট করুন</button>
+        </div>
+        
+        <h2>অর্ডার তালিকা</h2>
+        <table id="orderTable">
+            <thead>
+                <tr>
+                    <th>ক্রমিক</th>
+                    <th>নাম</th>
+                    <th>আইডি</th>
+                    <th>অর্ডার টাইপ</th>
+                </tr>
+            </thead>
+            <tbody id="orderTableBody"></tbody>
+        </table>
+    </div>
 
     <script>
-        let allUsers = JSON.parse(localStorage.getItem('allUsers')) || {};
-        const myId = 'user_' + Date.now();
-        let myName = "";
-
-        function updateStatus(message) {
-            document.getElementById('status').textContent = message;
+        // DOM এলিমেন্ট সিলেক্ট
+        const showFormBtn = document.getElementById('showFormBtn');
+        const orderForm = document.getElementById('orderForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const orderTableBody = document.getElementById('orderTableBody');
+        
+        // ফর্ম দেখান/লুকান
+        showFormBtn.addEventListener('click', function() {
+            orderForm.style.display = orderForm.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        // অর্ডার সাবমিট
+        submitBtn.addEventListener('click', function() {
+            const name = document.getElementById('name').value;
+            const id = document.getElementById('id').value;
+            const orderType = document.getElementById('orderType').value;
+            
+            if (name && id && orderType) {
+                addOrderToTable(name, id, orderType);
+                resetForm();
+            } else {
+                alert('দয়া করে সব ফিল্ড পূরণ করুন');
+            }
+        });
+        
+        // অর্ডার টেবিলে যোগ করুন
+        function addOrderToTable(name, id, orderType) {
+            // লোকাল স্টোরেজ থেকে অর্ডার লোড করুন
+            let orders = JSON.parse(localStorage.getItem('orders')) || [];
+            
+            // নতুন অর্ডার যোগ করুন
+            const newOrder = {
+                serial: orders.length + 1,
+                name,
+                id,
+                orderType
+            };
+            
+            orders.push(newOrder);
+            
+            // সর্বোচ্চ 10000 অর্ডার রাখুন (পুরাতন অর্ডার ডিলিট করুন)
+            if (orders.length > 10000) {
+                orders = orders.slice(orders.length - 10000);
+            }
+            
+            // লোকাল স্টোরেজে সেভ করুন
+            localStorage.setItem('orders', JSON.stringify(orders));
+            
+            // টেবিল আপডেট করুন
+            updateOrderTable(orders);
         }
-
-        function updateTable() {
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '';
-
-            for (const userId in allUsers) {
-                const user = allUsers[userId];
+        
+        // টেবিল আপডেট করুন
+        function updateOrderTable(orders) {
+            orderTableBody.innerHTML = '';
+            
+            orders.forEach(order => {
                 const row = document.createElement('tr');
-                
                 row.innerHTML = `
-                    <td>${user.name}</td>
-                    <td>${user.city || 'N/A'}</td>
-                    <td>${user.country || 'N/A'}</td>
-                    <td>${user.lat}</td>
-                    <td>${user.lon}</td>
-                    <td>${new Date(user.timestamp).toLocaleTimeString()}</td>
+                    <td>${order.serial}</td>
+                    <td>${order.name}</td>
+                    <td>${order.id}</td>
+                    <td>${getOrderTypeText(order.orderType)}</td>
                 `;
-                tableBody.appendChild(row);
-            }
+                orderTableBody.appendChild(row);
+            });
         }
-
-        function getUsername() {
-            myName = prompt("আপনার নাম লিখুন:", "User-" + Math.floor(Math.random() * 1000));
-            if (!myName) myName = "Anonymous";
+        
+        // অর্ডার টাইপ টেক্সট পেতে
+        function getOrderTypeText(type) {
+            const types = {
+                'tissue': 'টিস্যু',
+                'book': 'বই',
+                'pen': 'কলম',
+                'hygiene': 'হাইজিন',
+                'delivery-tissue': 'ডেলিভারি টিস্যু',
+                'delivery-book': 'ডেলিভারি বই',
+                'delivery-pen': 'ডেলিভারি কলম',
+                'delivery-hygiene': 'ডেলিভারি হাইজিন'
+            };
+            return types[type] || type;
         }
-
-        async function fetchIPLocationAndSave() {
-            try {
-                const res = await fetch("https://ipapi.co/json/");
-                const data = await res.json();
-
-                allUsers[myId] = {
-                    name: myName,
-                    city: data.city,
-                    country: data.country_name,
-                    lat: data.latitude,
-                    lon: data.longitude,
-                    timestamp: Date.now()
-                };
-
-                localStorage.setItem('allUsers', JSON.stringify(allUsers));
-                updateStatus("লোকেশন লোড হয়েছে!");
-                updateTable();
-            } catch (err) {
-                updateStatus("লোকেশন লোড করতে সমস্যা হয়েছে: " + err.message);
-            }
+        
+        // ফর্ম রিসেট করুন
+        function resetForm() {
+            document.getElementById('name').value = '';
+            document.getElementById('id').value = '';
+            document.getElementById('orderType').value = '';
+            orderForm.style.display = 'none';
         }
-
-        window.onload = function () {
-            getUsername();
-            updateStatus("লোকেশন লোড হচ্ছে...");
-            fetchIPLocationAndSave();
-            updateTable();
-
-            // প্রতি ৫ সেকেন্ডে টেবিল আপডেট
-            setInterval(() => {
-                const savedData = localStorage.getItem('allUsers');
-                if (savedData) {
-                    allUsers = JSON.parse(savedData);
-                    updateTable();
-                }
-            }, 5000);
-        };
+        
+        // পেজ লোড হলে টেবিল আপডেট করুন
+        window.addEventListener('load', function() {
+            const orders = JSON.parse(localStorage.getItem('orders')) || [];
+            updateOrderTable(orders);
+        });
     </script>
 </body>
 </html>
