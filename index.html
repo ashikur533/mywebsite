@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>সবার লোকেশন লাইভ দেখুন</title>
+  <title>সবার লোকেশন দেখুন</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,29 +14,32 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
+      background: white;
     }
     th, td {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 10px;
       text-align: left;
     }
     th {
       background-color: #4CAF50;
       color: white;
     }
-    .you {
-      background-color: #e3f2fd;
-      font-weight: bold;
+    #status {
+      padding: 10px;
+      background: #e3f2fd;
+      border-radius: 5px;
+      margin-bottom: 20px;
     }
   </style>
 </head>
 <body>
-  <h1>সব ইউজারের বর্তমান লোকেশন</h1>
+  <h1>সকল ইউজারের লোকেশন</h1>
   <div id="status">সিস্টেম প্রস্তুত হচ্ছে...</div>
   <table id="locationTable">
     <thead>
       <tr>
-        <th>নাম</th>
+        <th>আইডি</th>
         <th>Latitude</th>
         <th>Longitude</th>
         <th>সময়</th>
@@ -45,23 +48,14 @@
     <tbody id="tableBody"></tbody>
   </table>
 
-  <script src="https://unpkg.com/peerjs@1.3.2/dist/peerjs.min.js"></script>
   <script>
-    // ১. PeerJS ইনিশিয়ালাইজেশন
-    const peer = new Peer();
-    const connections = {};
+    // ১. সব ইউজারের ডাটা স্টোর করার অবজেক্ট
     const allUsers = {};
-    let myId = '';
-    let myName = '';
+    let myId = Math.random().toString(36).substr(2, 9);
 
     // ২. স্ট্যাটাস আপডেট ফাংশন
-    function updateStatus(message, isError = false) {
-      const statusDiv = document.getElementById('status');
-      statusDiv.textContent = message;
-      if (isError) {
-        statusDiv.style.color = 'red';
-        statusDiv.style.fontWeight = 'bold';
-      }
+    function updateStatus(message) {
+      document.getElementById('status').textContent = message;
     }
 
     // ৩. টেবিল আপডেট ফাংশন
@@ -72,104 +66,65 @@
       for (const userId in allUsers) {
         const user = allUsers[userId];
         const row = document.createElement('tr');
-        if (userId === myId) row.className = 'you';
         
         row.innerHTML = `
-          <td>${user.name}</td>
-          <td>${user.location.lat.toFixed(6)}</td>
-          <td>${user.location.lng.toFixed(6)}</td>
+          <td>${userId}</td>
+          <td>${user.lat.toFixed(6)}</td>
+          <td>${user.lng.toFixed(6)}</td>
           <td>${new Date(user.timestamp).toLocaleTimeString()}</td>
         `;
+        
         tableBody.appendChild(row);
       }
     }
 
-    // ৪. নাম ইনপুট ফাংশন
-    function getUsername() {
-      myName = prompt("আপনার নাম লিখুন:", "User-" + Math.floor(Math.random() * 1000));
-      if (!myName) myName = "Anonymous";
-      return myName;
-    }
+    // ৪. লোকেশন শেয়ারিং ফাংশন
+    function shareLocation() {
+      if (!navigator.geolocation) {
+        updateStatus("ত্রুটি: আপনার ব্রাউজার লোকেশন সাপোর্ট করে না");
+        return;
+      }
 
-    // ৫. লোকেশন ট্র্যাকিং শুরু
-    function startSharing() {
       navigator.geolocation.watchPosition(
         (position) => {
-          const location = {
+          // নিজের লোকেশন স্টোর করুন
+          allUsers[myId] = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
             timestamp: Date.now()
           };
           
-          // নিজের ডাটা আপডেট
-          allUsers[myId] = {
-            name: myName,
-            location: location
-          };
-          
-          // অন্য ইউজারদের কাছে ডাটা পাঠান
-          Object.values(connections).forEach(conn => {
-            conn.send({
-              type: 'location_update',
-              data: {
-                userId: myId,
-                name: myName,
-                location: location
-              }
-            });
-          });
-          
+          updateStatus("আপনার লোকেশন শেয়ার হচ্ছে...");
           updateTable();
+          
+          // লোকাল স্টোরেজে সেভ করুন (অস্থায়ী সমাধান)
+          localStorage.setItem('locationData', JSON.stringify(allUsers));
         },
         (error) => {
-          updateStatus("ত্রুটি: " + error.message, true);
+          updateStatus("ত্রুটি: " + error.message);
         }
       );
     }
 
-    // ৬. PeerJS ইভেন্ট হ্যান্ডলার
-    peer.on('open', (id) => {
-      myId = id;
-      myName = getUsername();
-      updateStatus(`কানেক্টেড: ${myName}`);
-      startSharing();
-    });
-
-    peer.on('connection', (conn) => {
-      conn.on('data', (data) => {
-        if (data.type === 'location_update') {
-          allUsers[data.data.userId] = {
-            name: data.data.name,
-            location: data.data.location
-          };
-          updateTable();
-        }
-      });
-      connections[conn.peer] = conn;
-    });
-
-    peer.on('error', (err) => {
-      updateStatus("ত্রুটি: " + err.message, true);
-    });
-
-    // ৭. অটোমেটিক কানেক্ট করার জন্য
-    function connectToOthers() {
-      if (window.location.hash) {
-        const otherId = window.location.hash.substring(1);
-        if (otherId !== myId) {
-          const conn = peer.connect(otherId);
-          conn.on('open', () => {
-            connections[otherId] = conn;
-          });
-        }
+    // ৫. অন্য ইউজারদের ডাটা লোড করুন
+    function loadOtherUsers() {
+      const savedData = localStorage.getItem('locationData');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        Object.assign(allUsers, parsedData);
+        updateTable();
       }
-      window.location.hash = myId;
     }
 
-    // ৮. পেজ লোড হলে কাজ শুরু
-    window.addEventListener('load', () => {
-      setTimeout(connectToOthers, 2000);
-    });
+    // ৬. পেজ লোড হলে সব শুরু করুন
+    window.onload = function() {
+      updateStatus("আপনার ডিভাইস আইডি: " + myId);
+      shareLocation();
+      loadOtherUsers();
+      
+      // প্রতি ৫ সেকেন্ডে ডাটা চেক করুন
+      setInterval(loadOtherUsers, 5000);
+    };
   </script>
 </body>
 </html>
