@@ -1,82 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Letter Animation</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Location Auto Update Demo</title>
   <style>
     body {
-      background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
-      height: 100vh;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+      font-family: 'SolaimanLipi', Arial, sans-serif;
+      padding: 20px;
+      background: #f0f4f8;
+      color: #333;
     }
-
-    button {
-      padding: 12px 24px;
-      font-size: 20px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-bottom: 20px;
+    h1 {
+      color: #2c3e50;
     }
-
-    .letter {
-      position: absolute;
-      font-size: 48px;
-      animation: floatFade 3s ease-in-out forwards;
-    }
-
-    @keyframes floatFade {
-      0% {
-        opacity: 1;
-        transform: translateY(0) rotate(0deg) scale(1);
-      }
-      50% {
-        transform: translateY(-80px) rotate(180deg) scale(1.2);
-        opacity: 0.8;
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(-160px) rotate(360deg) scale(0.8);
-      }
+    #status {
+      margin: 15px 0;
+      padding: 10px;
+      background: #e1f5fe;
+      border: 1px solid #81d4fa;
+      border-radius: 5px;
+      max-width: 400px;
     }
   </style>
 </head>
 <body>
-
-  <button onclick="showLetter()">Show Letter</button>
+  <h1>আপনার বর্তমান লোকেশন আপডেট হচ্ছে</h1>
+  <div id="status">লোকেশন নেওয়া হবে...</div>
+  <div id="location"></div>
 
   <script>
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let index = 0;
+    const statusDiv = document.getElementById('status');
+    const locationDiv = document.getElementById('location');
 
-    function showLetter() {
-      const letter = document.createElement("div");
-      letter.className = "letter";
-      letter.innerText = letters[index % letters.length];
-      index++;
-
-      // Random position
-      const left = Math.random() * 60 + 20; // 20% - 80%
-      letter.style.left = `${left}%`;
-      letter.style.top = "60%";
-
-      document.body.appendChild(letter);
-
-      // Remove after animation
-      setTimeout(() => {
-        letter.remove();
-      }, 3000);
+    function showStatus(message) {
+      statusDiv.textContent = message;
     }
-  </script>
 
+    function showLocation(lat, lon) {
+      locationDiv.textContent = `Latitude: ${lat.toFixed(6)}, Longitude: ${lon.toFixed(6)}`;
+    }
+
+    function getLocation() {
+      if (!navigator.geolocation) {
+        showStatus('দুঃখিত, আপনার ব্রাউজার লোকেশন সাপোর্ট করে না।');
+        return;
+      }
+
+      showStatus('লোকেশন নেওয়া হচ্ছে...');
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          showStatus('লোকেশন নেওয়া হয়েছে।');
+          showLocation(lat, lon);
+          console.log(`Lat: ${lat}, Lon: ${lon}`);
+        },
+        (error) => {
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              showStatus("আপনি লোকেশন অনুমতি দেননি।");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              showStatus("লোকেশন পাওয়া যায়নি।");
+              break;
+            case error.TIMEOUT:
+              showStatus("লোকেশন নেওয়ার সময় শেষ হয়ে গেছে।");
+              break;
+            default:
+              showStatus("অজানা ত্রুটি হয়েছে।");
+          }
+        }
+      );
+    }
+
+    // প্রথমবার লোকেশন নিন
+    getLocation();
+
+    // ১০ মিনিট অন্তর লোকেশন আপডেট করুন (১০*৬০*১০০০ = ৬০০০০০ মিলিসেকেন্ড)
+    setInterval(getLocation, 10 * 60 * 1000);
+  </script>
 </body>
 </html>
