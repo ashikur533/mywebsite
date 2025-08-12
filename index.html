@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>রিয়েল-টাইম লোকেশন ট্র্যাকার</title>
+  <title>সবার লোকেশন লাইভ দেখুন</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -38,12 +38,12 @@
   </style>
 </head>
 <body>
-  <h1>সব ইউজারের বর্তমান লোকেশন</h1>
+  <h1>সকল ইউজারের বর্তমান লোকেশন</h1>
   <div id="status">সিস্টেম প্রস্তুত হচ্ছে...</div>
   <table id="locationTable">
     <thead>
       <tr>
-        <th>আইডি</th>
+        <th>ইউজার</th>
         <th>Latitude</th>
         <th>Longitude</th>
         <th>সময়</th>
@@ -52,13 +52,11 @@
     <tbody id="tableBody"></tbody>
   </table>
 
-  <!-- PeerJS লাইব্রেরি -->
-  <script src="https://unpkg.com/peerjs@1.3.2/dist/peerjs.min.js"></script>
   <script>
     // ১. ভেরিয়েবল ডিক্লেয়ার
-    const peer = new Peer();
     const allUsers = {};
-    let myId = '';
+    let myId = 'user_' + Math.random().toString(36).substr(2, 8);
+    let myName = '';
 
     // ২. স্ট্যাটাস আপডেট ফাংশন
     function updateStatus(message, isError = false) {
@@ -81,7 +79,7 @@
         if (userId === myId) row.className = 'you';
         
         row.innerHTML = `
-          <td>${userId}</td>
+          <td>${user.name}</td>
           <td>${user.lat.toFixed(6)}</td>
           <td>${user.lng.toFixed(6)}</td>
           <td>${new Date(user.timestamp).toLocaleTimeString()}</td>
@@ -90,7 +88,14 @@
       }
     }
 
-    // ৪. লোকেশন শেয়ারিং ফাংশন
+    // ৪. ইউজার নাম নেওয়া
+    function getUsername() {
+      myName = prompt("আপনার নাম লিখুন:", "User-" + Math.floor(Math.random() * 1000));
+      if (!myName) myName = "Anonymous";
+      return myName;
+    }
+
+    // ৫. লোকেশন শেয়ারিং ফাংশন
     function shareLocation() {
       if (!navigator.geolocation) {
         updateStatus("ত্রুটি: আপনার ব্রাউজার লোকেশন সাপোর্ট করে না", true);
@@ -106,11 +111,14 @@
           };
           
           // নিজের ডাটা আপডেট
-          allUsers[myId] = location;
-          updateTable();
+          allUsers[myId] = {
+            name: myName,
+            ...location
+          };
           
-          // লোকাল স্টোরেজে সেভ করুন (সব ডিভাইস একসাথে দেখার জন্য)
-          localStorage.setItem('sharedLocations', JSON.stringify(allUsers));
+          // লোকাল স্টোরেজে সেভ করুন
+          localStorage.setItem('live_location_data', JSON.stringify(allUsers));
+          updateTable();
         },
         (error) => {
           updateStatus("ত্রুটি: " + error.message, true);
@@ -119,30 +127,34 @@
       );
     }
 
-    // ৫. অন্য ইউজারদের ডাটা লোড করুন
+    // ৬. অন্য ইউজারদের ডাটা লোড করুন
     function loadOtherUsers() {
-      const savedData = localStorage.getItem('sharedLocations');
+      const savedData = localStorage.getItem('live_location_data');
       if (savedData) {
         const parsedData = JSON.parse(savedData);
-        Object.assign(allUsers, parsedData);
+        
+        // শুধু নতুন/আপডেটেড ডাটা যোগ করুন
+        for (const userId in parsedData) {
+          if (!allUsers[userId] || parsedData[userId].timestamp > allUsers[userId].timestamp) {
+            allUsers[userId] = parsedData[userId];
+          }
+        }
+        
         updateTable();
       }
     }
 
-    // ৬. PeerJS সেটআপ
-    peer.on('open', (id) => {
-      myId = id;
-      updateStatus(`আপনার আইডি: ${id} | লোকেশন শেয়ারিং শুরু হয়েছে`);
+    // ৭. পেজ লোড হলে কাজ শুরু
+    window.onload = function() {
+      myName = getUsername();
+      updateStatus(`স্বাগতম ${myName}! আপনার লোকেশন শেয়ার হচ্ছে...`);
+      
       shareLocation();
       loadOtherUsers();
       
       // প্রতি ৩ সেকেন্ডে ডাটা চেক করুন
       setInterval(loadOtherUsers, 3000);
-    });
-
-    peer.on('error', (err) => {
-      updateStatus("ত্রুটি: " + err.message, true);
-    });
+    };
   </script>
 </body>
 </html>
