@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>সবার লোকেশন</title>
+    <title>সবার লোকেশন (IP ভিত্তিক)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -36,12 +36,14 @@
     </style>
 </head>
 <body>
-    <h1>সকল ইউজারের লোকেশন</h1>
+    <h1>সকল ইউজারের লোকেশন (IP ভিত্তিক)</h1>
     <div id="status">সিস্টেম প্রস্তুত হচ্ছে...</div>
     <table id="locationTable">
         <thead>
             <tr>
                 <th>নাম</th>
+                <th>শহর</th>
+                <th>Country</th>
                 <th>Latitude</th>
                 <th>Longitude</th>
                 <th>সময়</th>
@@ -51,88 +53,75 @@
     </table>
 
     <script>
-        // ১. ভেরিয়েবল ডিক্লেয়ার
         let allUsers = JSON.parse(localStorage.getItem('allUsers')) || {};
         const myId = 'user_' + Date.now();
         let myName = "";
 
-        // ২. স্ট্যাটাস আপডেট ফাংশন
         function updateStatus(message) {
             document.getElementById('status').textContent = message;
         }
 
-        // ৩. টেবিল আপডেট ফাংশন
         function updateTable() {
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
-            
+
             for (const userId in allUsers) {
                 const user = allUsers[userId];
                 const row = document.createElement('tr');
                 
                 row.innerHTML = `
                     <td>${user.name}</td>
-                    <td>${user.lat.toFixed(6)}</td>
-                    <td>${user.lng.toFixed(6)}</td>
+                    <td>${user.city || 'N/A'}</td>
+                    <td>${user.country || 'N/A'}</td>
+                    <td>${user.lat}</td>
+                    <td>${user.lon}</td>
                     <td>${new Date(user.timestamp).toLocaleTimeString()}</td>
                 `;
                 tableBody.appendChild(row);
             }
         }
 
-        // ৪. নাম ইনপুট নেওয়া
         function getUsername() {
             myName = prompt("আপনার নাম লিখুন:", "User-" + Math.floor(Math.random() * 1000));
             if (!myName) myName = "Anonymous";
-            return myName;
         }
 
-        // ৫. লোকেশন ট্র্যাকিং শুরু
-        function startLocationSharing() {
-            if (!navigator.geolocation) {
-                updateStatus("ত্রুটি: আপনার ব্রাউজার লোকেশন সাপোর্ট করে না");
-                return;
+        async function fetchIPLocationAndSave() {
+            try {
+                const res = await fetch("https://ipapi.co/json/");
+                const data = await res.json();
+
+                allUsers[myId] = {
+                    name: myName,
+                    city: data.city,
+                    country: data.country_name,
+                    lat: data.latitude,
+                    lon: data.longitude,
+                    timestamp: Date.now()
+                };
+
+                localStorage.setItem('allUsers', JSON.stringify(allUsers));
+                updateStatus("লোকেশন লোড হয়েছে!");
+                updateTable();
+            } catch (err) {
+                updateStatus("লোকেশন লোড করতে সমস্যা হয়েছে: " + err.message);
             }
-
-            navigator.geolocation.watchPosition(
-                (position) => {
-                    // নিজের ডাটা আপডেট
-                    allUsers[myId] = {
-                        name: myName,
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                        timestamp: Date.now()
-                    };
-                    
-                    // লোকাল স্টোরেজে সেভ
-                    localStorage.setItem('allUsers', JSON.stringify(allUsers));
-                    
-                    updateStatus("আপনার লোকেশন শেয়ার হচ্ছে...");
-                    updateTable();
-                },
-                (error) => {
-                    updateStatus("ত্রুটি: " + error.message);
-                },
-                { enableHighAccuracy: true }
-            );
         }
 
-        // ৬. পেজ লোড হলে কাজ শুরু
-        window.onload = function() {
-            myName = getUsername();
-            updateStatus(`স্বাগতম ${myName}! আপনার লোকেশন শেয়ার হচ্ছে...`);
-            
-            startLocationSharing();
+        window.onload = function () {
+            getUsername();
+            updateStatus("লোকেশন লোড হচ্ছে...");
+            fetchIPLocationAndSave();
             updateTable();
-            
-            // প্রতি ৩ সেকেন্ডে ডাটা চেক
-            setInterval(function() {
+
+            // প্রতি ৫ সেকেন্ডে টেবিল আপডেট
+            setInterval(() => {
                 const savedData = localStorage.getItem('allUsers');
                 if (savedData) {
                     allUsers = JSON.parse(savedData);
                     updateTable();
                 }
-            }, 3000);
+            }, 5000);
         };
     </script>
 </body>
