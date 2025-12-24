@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Daily Tour SMS Report</title>
+<title>SMS Data Collector – All in One</title>
 
 <style>
 body{
@@ -18,19 +18,26 @@ body{
 }
 textarea{
     width:100%;
-    height:220px;
+    height:160px;
     padding:10px;
     font-size:14px;
 }
 button{
-    padding:8px 14px;
+    padding:8px 15px;
     background:#0066cc;
     color:#fff;
     border:none;
     cursor:pointer;
-    margin-right:5px;
+    margin:5px 5px 5px 0;
 }
 button:hover{ background:#004999; }
+
+.menu button{
+    background:#333;
+}
+.menu button:hover{
+    background:#000;
+}
 
 table{
     width:100%;
@@ -43,99 +50,178 @@ th,td{
     font-size:13px;
 }
 th{ background:#e9eef3; }
-td[contenteditable="true"]{ background:#fffbe6; }
+td[contenteditable]{ background:#fffbe6; }
+
+.section{ display:none; }
 </style>
 </head>
 
 <body>
 
 <div class="container">
-<h2>📩 Daily Tour Plan SMS → Report</h2>
+<h2>📩 SMS Data Collector (All-in-One)</h2>
 
-<textarea id="sms" placeholder="Paste Daily Tour SMS here..."></textarea><br><br>
+<div class="menu">
+<button onclick="show('blank')">Blank Route SMS</button>
+<button onclick="show('tour')">Daily Tour SMS</button>
+<button onclick="show('manual')">Manual Headline</button>
+</div>
 
-<button onclick="addData()">➕ Add</button>
-<button onclick="exportExcel()">📊 Export Excel</button>
+<!-- ================= BLANK ROUTE ================= -->
+<div id="blank" class="section">
+<h3>Blank Route SMS</h3>
+<textarea id="blank_sms" placeholder="Paste Blank Route SMS..."></textarea><br>
 
-<table id="dataTable">
+<button onclick="addBlank()">➕ Add</button>
+<button onclick="exportTable('blankTable','Blank_Route_Report.csv')">📊 Export</button>
+
+<table id="blankTable">
 <thead>
 <tr>
-<th>SL</th>
-<th>Date</th>
-<th>Name</th>
-<th>Designation</th>
-<th>Emp ID</th>
-<th>Division / Area / Territory</th>
-<th>Distributor Name</th>
-<th>Monthly Tour Plan</th>
-<th>Today's Tour Plan</th>
-<th>Tour With SO</th>
-<th>SO Mobile</th>
-<th>Visited Route</th>
-<th>Outlet of Route</th>
-<th>Office In Time</th>
-<th>Remarks</th>
+<th>SL</th><th>Division</th><th>Area</th><th>Territory</th>
+<th>DB</th><th>Route</th><th>Status</th><th>Coverage By</th><th>Designation</th><th>Remarks</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
 </div>
 
+<!-- ================= DAILY TOUR ================= -->
+<div id="tour" class="section">
+<h3>Daily Tour SMS</h3>
+<textarea id="tour_sms" placeholder="Paste Daily Tour SMS..."></textarea><br>
+
+<button onclick="addTour()">➕ Add</button>
+<button onclick="exportTable('tourTable','Daily_Tour_Report.csv')">📊 Export</button>
+
+<table id="tourTable">
+<thead>
+<tr>
+<th>SL</th><th>Date</th><th>Name</th><th>Designation</th><th>Emp ID</th>
+<th>Division / Area</th><th>Distributor</th><th>Monthly Plan</th>
+<th>Today Plan</th><th>Tour With</th><th>Mobile</th>
+<th>Visited Route</th><th>Outlet</th><th>Office Time</th><th>Remarks</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
+<!-- ================= MANUAL ================= -->
+<div id="manual" class="section">
+<h3>Manual Headline (Custom)</h3>
+
+<b>✍️ Write Headline (one per line)</b>
+<textarea id="manual_head">
+Date
+Name
+Designation
+Area
+Remarks
+</textarea>
+
+<b>📩 Paste SMS</b>
+<textarea id="manual_sms"></textarea><br>
+
+<button onclick="addManual()">➕ Add</button>
+<button onclick="exportTable('manualTable','Manual_Report.csv')">📊 Export</button>
+
+<table id="manualTable">
+<thead><tr id="manualHeadRow"><th>SL</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+</div>
+
 <script>
-let sl = 1;
+let sl1=1, sl2=1, sl3=1;
 
-function addData(){
-    let text = document.getElementById("sms").value.trim();
-    if(text===""){ alert("Paste SMS first"); return; }
-
-    let row = `
-    <tr>
-        <td>${sl++}</td>
-        <td contenteditable="true">${find(text,"Date")}</td>
-        <td contenteditable="true">${find(text,"Name")}</td>
-        <td contenteditable="true">${find(text,"Designation")}</td>
-        <td contenteditable="true">${find(text,"EMP ID")}</td>
-        <td contenteditable="true">
-            ${find(text,"Division")} / ${find(text,"Area Name")}
-        </td>
-        <td contenteditable="true">${find(text,"Distributor")}</td>
-        <td contenteditable="true">${find(text,"Monthly Tour Plan")}</td>
-        <td contenteditable="true">${find(text,"Today Tour")}</td>
-        <td contenteditable="true">${find(text,"Tour With SO")}</td>
-        <td contenteditable="true">${find(text,"Mobile")}</td>
-        <td contenteditable="true">${find(text,"Visited Route")}</td>
-        <td contenteditable="true">${find(text,"Outlet of Route")}</td>
-        <td contenteditable="true">${find(text,"Office in Time")}</td>
-        <td contenteditable="true"></td>
-    </tr>`;
-
-    document.querySelector("#dataTable tbody")
-        .insertAdjacentHTML("beforeend",row);
-
-    document.getElementById("sms").value="";
+/* SHOW SECTION */
+function show(id){
+    document.querySelectorAll('.section').forEach(s=>s.style.display='none');
+    document.getElementById(id).style.display='block';
 }
 
+/* FIND VALUE */
 function find(text,key){
-    let r = new RegExp(key + "\\s*[:\\-]?\\s*(.*)","i");
-    let m = text.match(r);
-    return m ? m[1].trim() : "";
+    let r=new RegExp(key+"\\s*[:\\-]?\\s*(.*)","i");
+    let m=text.match(r);
+    return m?m[1].trim():"";
 }
 
-/* ===== EXPORT EXCEL ===== */
-function exportExcel(){
-    let csv="";
-    document.querySelectorAll("#dataTable tr").forEach(tr=>{
-        let row=[];
-        tr.querySelectorAll("th,td").forEach(td=>{
-            row.push(`"${td.innerText.replace(/"/g,'""')}"`);
-        });
-        csv+=row.join(",")+"\n";
+/* BLANK ROUTE */
+function addBlank(){
+    let t=document.getElementById("blank_sms").value;
+    let blocks=t.split(/Blank Route\s*\d+/i).slice(1);
+    blocks.forEach(b=>{
+        let r=`<tr>
+        <td>${sl1++}</td>
+        <td contenteditable>${find(t,"Division")}</td>
+        <td contenteditable>${find(b,"Area")}</td>
+        <td contenteditable>${find(b,"Territory")}</td>
+        <td contenteditable>${find(b,"DB")}</td>
+        <td contenteditable>${find(b,"Route")}</td>
+        <td contenteditable>${find(b,"Status")}</td>
+        <td contenteditable>${find(b,"Name")}</td>
+        <td contenteditable>${find(b,"Designation")}</td>
+        <td contenteditable></td></tr>`;
+        blankTable.querySelector("tbody").insertAdjacentHTML("beforeend",r);
     });
+    blank_sms.value="";
+}
 
-    let blob=new Blob([csv],{type:"text/csv"});
+/* DAILY TOUR */
+function addTour(){
+    let t=tour_sms.value;
+    let r=`<tr>
+    <td>${sl2++}</td>
+    <td contenteditable>${find(t,"Date")}</td>
+    <td contenteditable>${find(t,"Name")}</td>
+    <td contenteditable>${find(t,"Designation")}</td>
+    <td contenteditable>${find(t,"EMP ID")}</td>
+    <td contenteditable>${find(t,"Division")} / ${find(t,"Area")}</td>
+    <td contenteditable>${find(t,"Distributor")}</td>
+    <td contenteditable>${find(t,"Monthly")}</td>
+    <td contenteditable>${find(t,"Today")}</td>
+    <td contenteditable>${find(t,"Tour")}</td>
+    <td contenteditable>${find(t,"Mobile")}</td>
+    <td contenteditable>${find(t,"Visited")}</td>
+    <td contenteditable>${find(t,"Outlet")}</td>
+    <td contenteditable>${find(t,"Office")}</td>
+    <td contenteditable></td></tr>`;
+    tourTable.querySelector("tbody").insertAdjacentHTML("beforeend",r);
+    tour_sms.value="";
+}
+
+/* MANUAL */
+function addManual(){
+    let heads=manual_head.value.split("\n").filter(h=>h);
+    let sms=manual_sms.value;
+    let headRow=document.getElementById("manualHeadRow");
+    headRow.innerHTML="<th>SL</th>";
+    heads.forEach(h=>headRow.innerHTML+=`<th>${h}</th>`);
+
+    let row=`<tr><td>${sl3++}</td>`;
+    heads.forEach(h=>row+=`<td contenteditable>${find(sms,h)}</td>`);
+    row+="</tr>";
+    manualTable.querySelector("tbody").insertAdjacentHTML("beforeend",row);
+    manual_sms.value="";
+}
+
+/* EXPORT */
+function exportTable(id,file){
+    let csv="";
+    document.querySelectorAll("#"+id+" tr").forEach(tr=>{
+        let r=[];
+        tr.querySelectorAll("th,td").forEach(td=>{
+            r.push(`"${td.innerText.replace(/"/g,'""')}"`);
+        });
+        csv+=r.join(",")+"\n";
+    });
     let a=document.createElement("a");
-    a.href=URL.createObjectURL(blob);
-    a.download="Daily_Tour_Report.csv";
+    a.href=URL.createObjectURL(new Blob([csv]));
+    a.download=file;
     a.click();
 }
 </script>
