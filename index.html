@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>SMS Data Collector – Simplified</title>
+<title>SMS Data Collector – Ultimate Final</title>
 
 <style>
 body{
@@ -18,7 +18,7 @@ body{
 }
 textarea{
     width:100%;
-    height:160px;
+    height:180px;
     padding:10px;
     font-size:14px;
 }
@@ -59,41 +59,18 @@ td[contenteditable]{ background:#fffbe6; }
 <body>
 
 <div class="container">
-<h2>📩 SMS Data Collector (Simplified)</h2>
+<h2>📩 SMS Data Collector (Ultimate Final)</h2>
 
 <div class="menu">
 <button onclick="show('manual')">Manual Headline</button>
 <button onclick="show('wa')">WhatsApp Extract</button>
 </div>
 
-<!-- ================= MANUAL ================= -->
-<div id="manual" class="section">
-<h3>Manual Headline</h3>
-
-<b>✍️ Headline (one per line)</b>
-<textarea id="manual_head">Date
-Name
-Designation
-Area
-Remarks</textarea>
-
-<b>📩 Paste SMS</b>
-<textarea id="manual_sms"></textarea><br>
-
-<button onclick="addManual()">➕ Add</button>
-<button onclick="exportTable('manualTable','Manual_Report.csv')">📊 Export</button>
-
-<table id="manualTable">
-<thead><tr id="manualHeadRow"><th>SL</th></tr></thead>
-<tbody></tbody>
-</table>
-</div>
-
 <!-- ================= WHATSAPP ================= -->
-<div id="wa" class="section">
+<div id="wa" class="section" style="display:block;">
 <h3>WhatsApp Extract</h3>
 
-<textarea id="wa_sms" placeholder="Paste WhatsApp Chat..."></textarea><br>
+<textarea id="wa_sms" placeholder="Paste full WhatsApp chat..."></textarea><br>
 
 <button onclick="addWA()">➕ Add</button>
 <button onclick="exportTable('waTable','WhatsApp_Report.csv')">📊 Export</button>
@@ -103,8 +80,12 @@ Remarks</textarea>
 <tr>
 <th>SL</th>
 <th>Name / Number</th>
-<th>Type</th>
 <th>Time</th>
+<th>AM/PM</th>
+<th>Type</th>
+<th>EMP ID</th>
+<th>Monthly Tour</th>
+<th>Today Tour</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -114,88 +95,128 @@ Remarks</textarea>
 </div>
 
 <script>
-let sl1=1, sl2=1;
+let sl2 = 1;
 
-/* SHOW SECTION */
+/* SHOW */
 function show(id){
     document.querySelectorAll('.section').forEach(s=>s.style.display='none');
     document.getElementById(id).style.display='block';
 }
 
-/* FIND VALUE */
-function find(text,key){
-    let r=new RegExp(key+"\\s*[:\\-]?\\s*(.*)","i");
-    let m=text.match(r);
-    return m?m[1].trim():"";
-}
-
-/* MANUAL */
-function addManual(){
-    let heads=manual_head.value.split("\n").filter(h=>h);
-    let sms=manual_sms.value;
-
-    let headRow=document.getElementById("manualHeadRow");
-    headRow.innerHTML="<th>SL</th>";
-    heads.forEach(h=>headRow.innerHTML+=`<th>${h}</th>`);
-
-    let row=`<tr><td>${sl1++}</td>`;
-    heads.forEach(h=>row+=`<td contenteditable>${find(sms,h)}</td>`);
-    row+="</tr>";
-
-    manualTable.querySelector("tbody").insertAdjacentHTML("beforeend",row);
-    manual_sms.value="";
-}
-
-/* TYPE DETECT */
-function detectType(line){
-    let l=line.toLowerCase();
-    if(l.includes("maps.google.com")) return "map";
-    else if(l.includes("tour plan")) return "tour plan";
-    else return "normal";
-}
-
-/* WHATSAPP EXTRACT */
+/* ================= WHATSAPP ================= */
 function addWA(){
-    let text=wa_sms.value;
-    let lines=text.split("\n");
 
-    let regex=/\[(\d{1,2}:\d{2})\s?[APMapm]{2},.*?\]\s(.+?):/;
+    let text = wa_sms.value;
+    let lines = text.split("\n");
 
-    lines.forEach(line=>{
-        let m=line.match(regex);
-        if(m){
-            let time=m[1];
-            let name=m[2];
-            let type=detectType(line);
+    let headerRegex = /^(\d{2}\/\d{2}\/\d{2}),\s([\d:]+[^-]*)\s-\s(.+?):\s?(.*)$/i;
 
-            let row=`<tr>
-            <td>${sl2++}</td>
-            <td contenteditable>${name}</td>
-            <td contenteditable>${type}</td>
-            <td contenteditable>${time}</td>
-            </tr>`;
+    for(let i=0; i<lines.length; i++){
 
-            waTable.querySelector("tbody").insertAdjacentHTML("beforeend",row);
+        let line = lines[i];
+        let m = line.match(headerRegex);
+
+        if(!m) continue;
+
+        let rawTime = m[2];
+
+        // ✅ CLEAN TIME (fix â€¯ issue)
+        rawTime = rawTime.replace(/[^0-9:apm\s]/gi, '').trim();
+
+        let parts = rawTime.split(/\s+/);
+        let timeOnly = parts[0] || "";
+        let ampm = (parts[1] || "").toUpperCase();
+
+        let sender = m[3];
+        let msg = m[4].trim();
+
+        let type = "normal";
+        let emp = "";
+        let monthly = "";
+        let today = "";
+
+        // MEDIA
+        if(msg.includes("<Media omitted>")){
+            type = "media";
+            addRow(sender, timeOnly, ampm, type, emp, monthly, today);
+            continue;
         }
-    });
 
-    wa_sms.value="";
+        // MAP
+        if(msg.toLowerCase().includes("maps.google.com") || msg.toLowerCase().includes("location")){
+            type = "map";
+            addRow(sender, timeOnly, ampm, type, emp, monthly, today);
+            continue;
+        }
+
+        // TOUR PLAN
+        if(msg.toLowerCase().includes("tour plan")){
+
+            let j = i + 1;
+            let block = msg;
+
+            while(j < lines.length && !lines[j].match(headerRegex)){
+                block += "\n" + lines[j];
+                j++;
+            }
+
+            i = j - 1;
+
+            type = "tour plan";
+
+            // EMP ID
+            let empMatch = block.match(/emp\s*id[:\s\-]*([0-9]+)/i);
+            if(empMatch) emp = empMatch[1];
+
+            // Monthly Tour
+            let monMatch = block.match(/monthly\s.*tour.*[:\-]\s*(.*)/i);
+            if(monMatch) monthly = monMatch[1].replace(/[()]/g,"").trim();
+
+            // Today Tour (fixed)
+            let todayMatch = block.match(/today\s.*tour.*[:\-]\s*(.*)/i);
+            if(todayMatch) today = todayMatch[1].replace(/[()]/g,"").trim();
+
+            addRow(sender, timeOnly, ampm, type, emp, monthly, today);
+            continue;
+        }
+
+        // NORMAL
+        addRow(sender, timeOnly, ampm, type, emp, monthly, today);
+    }
+
+    wa_sms.value = "";
+}
+
+/* ADD ROW */
+function addRow(name, time, ampm, type, emp, monthly, today){
+    let row = `<tr>
+        <td>${sl2++}</td>
+        <td contenteditable>${name}</td>
+        <td contenteditable>${time}</td>
+        <td contenteditable>${ampm}</td>
+        <td contenteditable>${type}</td>
+        <td contenteditable>${emp}</td>
+        <td contenteditable>${monthly}</td>
+        <td contenteditable>${today}</td>
+    </tr>`;
+
+    waTable.querySelector("tbody").insertAdjacentHTML("beforeend", row);
 }
 
 /* EXPORT CSV */
 function exportTable(id,file){
-    let csv="";
+    let csv = "";
     document.querySelectorAll("#"+id+" tr").forEach(tr=>{
-        let r=[];
+        let r = [];
         tr.querySelectorAll("th,td").forEach(td=>{
             r.push(`"${td.innerText.replace(/"/g,'""')}"`);
         });
-        csv+=r.join(",")+"\n";
+        csv += r.join(",") + "\n";
     });
 
-    let a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob([csv]));
-    a.download=file;
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv]));
+    a.download = file;
     a.click();
 }
 </script>
