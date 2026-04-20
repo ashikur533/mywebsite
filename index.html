@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>SMS Data Collector – All in One</title>
+<title>SMS Data Collector – Simplified</title>
 
 <style>
 body{
@@ -59,66 +59,23 @@ td[contenteditable]{ background:#fffbe6; }
 <body>
 
 <div class="container">
-<h2>📩 SMS Data Collector (All-in-One)</h2>
+<h2>📩 SMS Data Collector (Simplified)</h2>
 
 <div class="menu">
-<button onclick="show('blank')">Blank Route SMS</button>
-<button onclick="show('tour')">Daily Tour SMS</button>
 <button onclick="show('manual')">Manual Headline</button>
-</div>
-
-<!-- ================= BLANK ROUTE ================= -->
-<div id="blank" class="section">
-<h3>Blank Route SMS</h3>
-<textarea id="blank_sms" placeholder="Paste Blank Route SMS..."></textarea><br>
-
-<button onclick="addBlank()">➕ Add</button>
-<button onclick="exportTable('blankTable','Blank_Route_Report.csv')">📊 Export</button>
-
-<table id="blankTable">
-<thead>
-<tr>
-<th>SL</th><th>Division</th><th>Area</th><th>Territory</th>
-<th>DB</th><th>Route</th><th>Status</th><th>Coverage By</th><th>Designation</th><th>Remarks</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-</div>
-
-<!-- ================= DAILY TOUR ================= -->
-<div id="tour" class="section">
-<h3>Daily Tour SMS</h3>
-<textarea id="tour_sms" placeholder="Paste Daily Tour SMS..."></textarea><br>
-
-<button onclick="addTour()">➕ Add</button>
-<button onclick="exportTable('tourTable','Daily_Tour_Report.csv')">📊 Export</button>
-
-<table id="tourTable">
-<thead>
-<tr>
-<th>SL</th><th>Date</th><th>Name</th><th>Designation</th><th>Emp ID</th>
-<th>Division / Area</th><th>Distributor</th><th>Monthly Plan</th>
-<th>Today Plan</th><th>Tour With</th><th>Mobile</th>
-<th>Visited Route</th><th>Outlet</th><th>Office Time</th><th>Remarks</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+<button onclick="show('wa')">WhatsApp Extract</button>
 </div>
 
 <!-- ================= MANUAL ================= -->
 <div id="manual" class="section">
-<h3>Manual Headline (Custom)</h3>
+<h3>Manual Headline</h3>
 
-<b>✍️ Write Headline (one per line)</b>
-<textarea id="manual_head">
-Date
+<b>✍️ Headline (one per line)</b>
+<textarea id="manual_head">Date
 Name
 Designation
 Area
-Remarks
-</textarea>
+Remarks</textarea>
 
 <b>📩 Paste SMS</b>
 <textarea id="manual_sms"></textarea><br>
@@ -132,10 +89,32 @@ Remarks
 </table>
 </div>
 
+<!-- ================= WHATSAPP ================= -->
+<div id="wa" class="section">
+<h3>WhatsApp Extract</h3>
+
+<textarea id="wa_sms" placeholder="Paste WhatsApp Chat..."></textarea><br>
+
+<button onclick="addWA()">➕ Add</button>
+<button onclick="exportTable('waTable','WhatsApp_Report.csv')">📊 Export</button>
+
+<table id="waTable">
+<thead>
+<tr>
+<th>SL</th>
+<th>Name / Number</th>
+<th>Type</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
 </div>
 
 <script>
-let sl1=1, sl2=1, sl3=1;
+let sl1=1, sl2=1;
 
 /* SHOW SECTION */
 function show(id){
@@ -150,66 +129,60 @@ function find(text,key){
     return m?m[1].trim():"";
 }
 
-/* BLANK ROUTE */
-function addBlank(){
-    let t=document.getElementById("blank_sms").value;
-    let blocks=t.split(/Blank Route\s*\d+/i).slice(1);
-    blocks.forEach(b=>{
-        let r=`<tr>
-        <td>${sl1++}</td>
-        <td contenteditable>${find(t,"Division")}</td>
-        <td contenteditable>${find(b,"Area")}</td>
-        <td contenteditable>${find(b,"Territory")}</td>
-        <td contenteditable>${find(b,"DB")}</td>
-        <td contenteditable>${find(b,"Route")}</td>
-        <td contenteditable>${find(b,"Status")}</td>
-        <td contenteditable>${find(b,"Name")}</td>
-        <td contenteditable>${find(b,"Designation")}</td>
-        <td contenteditable></td></tr>`;
-        blankTable.querySelector("tbody").insertAdjacentHTML("beforeend",r);
-    });
-    blank_sms.value="";
-}
-
-/* DAILY TOUR */
-function addTour(){
-    let t=tour_sms.value;
-    let r=`<tr>
-    <td>${sl2++}</td>
-    <td contenteditable>${find(t,"Date")}</td>
-    <td contenteditable>${find(t,"Name")}</td>
-    <td contenteditable>${find(t,"Designation")}</td>
-    <td contenteditable>${find(t,"EMP ID")}</td>
-    <td contenteditable>${find(t,"Division")} / ${find(t,"Area")}</td>
-    <td contenteditable>${find(t,"Distributor")}</td>
-    <td contenteditable>${find(t,"Monthly")}</td>
-    <td contenteditable>${find(t,"Today")}</td>
-    <td contenteditable>${find(t,"Tour")}</td>
-    <td contenteditable>${find(t,"Mobile")}</td>
-    <td contenteditable>${find(t,"Visited")}</td>
-    <td contenteditable>${find(t,"Outlet")}</td>
-    <td contenteditable>${find(t,"Office")}</td>
-    <td contenteditable></td></tr>`;
-    tourTable.querySelector("tbody").insertAdjacentHTML("beforeend",r);
-    tour_sms.value="";
-}
-
 /* MANUAL */
 function addManual(){
     let heads=manual_head.value.split("\n").filter(h=>h);
     let sms=manual_sms.value;
+
     let headRow=document.getElementById("manualHeadRow");
     headRow.innerHTML="<th>SL</th>";
     heads.forEach(h=>headRow.innerHTML+=`<th>${h}</th>`);
 
-    let row=`<tr><td>${sl3++}</td>`;
+    let row=`<tr><td>${sl1++}</td>`;
     heads.forEach(h=>row+=`<td contenteditable>${find(sms,h)}</td>`);
     row+="</tr>";
+
     manualTable.querySelector("tbody").insertAdjacentHTML("beforeend",row);
     manual_sms.value="";
 }
 
-/* EXPORT */
+/* TYPE DETECT */
+function detectType(line){
+    let l=line.toLowerCase();
+    if(l.includes("maps.google.com")) return "map";
+    else if(l.includes("tour plan")) return "tour plan";
+    else return "normal";
+}
+
+/* WHATSAPP EXTRACT */
+function addWA(){
+    let text=wa_sms.value;
+    let lines=text.split("\n");
+
+    let regex=/\[(\d{1,2}:\d{2})\s?[APMapm]{2},.*?\]\s(.+?):/;
+
+    lines.forEach(line=>{
+        let m=line.match(regex);
+        if(m){
+            let time=m[1];
+            let name=m[2];
+            let type=detectType(line);
+
+            let row=`<tr>
+            <td>${sl2++}</td>
+            <td contenteditable>${name}</td>
+            <td contenteditable>${type}</td>
+            <td contenteditable>${time}</td>
+            </tr>`;
+
+            waTable.querySelector("tbody").insertAdjacentHTML("beforeend",row);
+        }
+    });
+
+    wa_sms.value="";
+}
+
+/* EXPORT CSV */
 function exportTable(id,file){
     let csv="";
     document.querySelectorAll("#"+id+" tr").forEach(tr=>{
@@ -219,6 +192,7 @@ function exportTable(id,file){
         });
         csv+=r.join(",")+"\n";
     });
+
     let a=document.createElement("a");
     a.href=URL.createObjectURL(new Blob([csv]));
     a.download=file;
