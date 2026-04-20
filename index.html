@@ -2,11 +2,11 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>SMS Data Collector – Ultimate Final</title>
+<title>WhatsApp Tour Extractor</title>
 
 <style>
 body{
-    font-family: Arial, sans-serif;
+    font-family: Arial;
     background:#f2f4f7;
 }
 .container{
@@ -28,16 +28,9 @@ button{
     color:#fff;
     border:none;
     cursor:pointer;
-    margin:5px 5px 5px 0;
+    margin:5px;
 }
 button:hover{ background:#004999; }
-
-.menu button{
-    background:#333;
-}
-.menu button:hover{
-    background:#000;
-}
 
 table{
     width:100%;
@@ -51,29 +44,19 @@ th,td{
 }
 th{ background:#e9eef3; }
 td[contenteditable]{ background:#fffbe6; }
-
-.section{ display:none; }
 </style>
 </head>
 
 <body>
 
 <div class="container">
-<h2>📩 SMS Data Collector (Ultimate Final)</h2>
 
-<div class="menu">
-<button onclick="show('manual')">Manual Headline</button>
-<button onclick="show('wa')">WhatsApp Extract</button>
-</div>
+<h2>📩 WhatsApp Tour Plan Extractor</h2>
 
-<!-- ================= WHATSAPP ================= -->
-<div id="wa" class="section" style="display:block;">
-<h3>WhatsApp Extract</h3>
+<textarea id="wa_sms" placeholder="Paste WhatsApp Chat..."></textarea><br>
 
-<textarea id="wa_sms" placeholder="Paste full WhatsApp chat..."></textarea><br>
-
-<button onclick="addWA()">➕ Add</button>
-<button onclick="exportTable('waTable','WhatsApp_Report.csv')">📊 Export</button>
+<button onclick="addWA()">➕ Extract</button>
+<button onclick="exportTable('waTable','report.csv')">📊 Export</button>
 
 <table id="waTable">
 <thead>
@@ -84,139 +67,141 @@ td[contenteditable]{ background:#fffbe6; }
 <th>AM/PM</th>
 <th>Type</th>
 <th>EMP ID</th>
+<th>Name</th>
 <th>Monthly Tour</th>
 <th>Today Tour</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
-</div>
 
 </div>
 
 <script>
-let sl2 = 1;
+let sl = 1;
 
-/* SHOW */
-function show(id){
-    document.querySelectorAll('.section').forEach(s=>s.style.display='none');
-    document.getElementById(id).style.display='block';
+/* CLEAN TIME */
+function cleanTime(raw){
+    raw = raw.replace(/[^0-9:apm\s]/gi,'').trim();
+    let p = raw.split(/\s+/);
+    return {
+        time: p[0] || "",
+        ampm: (p[1] || "").toUpperCase()
+    };
 }
 
-/* ================= WHATSAPP ================= */
+/* ADD ROW */
+function addRow(sender,time,ampm,type,emp,name,monthly,today){
+
+    let row = `<tr>
+        <td>${sl++}</td>
+        <td contenteditable>${sender}</td>
+        <td contenteditable>${time}</td>
+        <td contenteditable>${ampm}</td>
+        <td contenteditable>${type}</td>
+        <td contenteditable>${emp}</td>
+        <td contenteditable>${name}</td>
+        <td contenteditable>${monthly}</td>
+        <td contenteditable>${today}</td>
+    </tr>`;
+
+    waTable.querySelector("tbody").insertAdjacentHTML("beforeend",row);
+}
+
+/* MAIN PARSER */
 function addWA(){
 
     let text = wa_sms.value;
     let lines = text.split("\n");
 
-    let headerRegex = /^(\d{2}\/\d{2}\/\d{2}),\s([\d:]+[^-]*)\s-\s(.+?):\s?(.*)$/i;
+    let regex = /^(\d{2}\/\d{2}\/\d{2}),\s([\d:]+[^-]*)\s-\s(.+?):\s?(.*)$/i;
 
-    for(let i=0; i<lines.length; i++){
+    for(let i=0;i<lines.length;i++){
 
         let line = lines[i];
-        let m = line.match(headerRegex);
-
+        let m = line.match(regex);
         if(!m) continue;
 
-        let rawTime = m[2];
-
-        // ✅ CLEAN TIME (fix â€¯ issue)
-        rawTime = rawTime.replace(/[^0-9:apm\s]/gi, '').trim();
-
-        let parts = rawTime.split(/\s+/);
-        let timeOnly = parts[0] || "";
-        let ampm = (parts[1] || "").toUpperCase();
-
+        let t = cleanTime(m[2]);
         let sender = m[3];
         let msg = m[4].trim();
 
-        let type = "normal";
-        let emp = "";
-        let monthly = "";
-        let today = "";
+        let type="normal";
+        let emp="";
+        let name="";
+        let monthly="";
+        let today="";
 
-        // MEDIA
+        /* MEDIA */
         if(msg.includes("<Media omitted>")){
-            type = "media";
-            addRow(sender, timeOnly, ampm, type, emp, monthly, today);
+            type="media";
+            addRow(sender,t.time,t.ampm,type,emp,name,monthly,today);
             continue;
         }
 
-        // MAP
-        if(msg.toLowerCase().includes("maps.google.com") || msg.toLowerCase().includes("location")){
-            type = "map";
-            addRow(sender, timeOnly, ampm, type, emp, monthly, today);
+        /* LOCATION */
+        if(msg.toLowerCase().includes("location") || msg.includes("maps.google")){
+            type="map";
+            addRow(sender,t.time,t.ampm,type,emp,name,monthly,today);
             continue;
         }
 
-        // TOUR PLAN
-        if(msg.toLowerCase().includes("tour plan")){
+        /* TOUR BLOCK */
+        if(msg.toLowerCase().includes("tour")){
 
-            let j = i + 1;
             let block = msg;
+            let j = i+1;
 
-            while(j < lines.length && !lines[j].match(headerRegex)){
-                block += "\n" + lines[j];
+            while(j<lines.length && !lines[j].match(regex)){
+                block += "\n"+lines[j];
                 j++;
             }
 
-            i = j - 1;
+            i = j-1;
 
-            type = "tour plan";
+            type="tour plan";
 
-            // EMP ID
+            /* EMP ID */
             let empMatch = block.match(/emp\s*id[:\s\-]*([0-9]+)/i);
             if(empMatch) emp = empMatch[1];
 
-            // Monthly Tour
-            let monMatch = block.match(/monthly\s.*tour.*[:\-]\s*(.*)/i);
-            if(monMatch) monthly = monMatch[1].replace(/[()]/g,"").trim();
+            /* NAME */
+            let nameMatch = block.match(/name[:\s\-]*(.*)/i);
+            if(nameMatch) name = nameMatch[1].split("\n")[0].trim();
 
-            // Today Tour (fixed)
-            let todayMatch = block.match(/today\s.*tour.*[:\-]\s*(.*)/i);
-            if(todayMatch) today = todayMatch[1].replace(/[()]/g,"").trim();
+            /* MONTHLY TOUR */
+            let mon = block.match(/monthly\s*.*tour.*[:\-]\s*(.*)/i);
+            if(mon) monthly = mon[1].trim();
 
-            addRow(sender, timeOnly, ampm, type, emp, monthly, today);
+            /* TODAY TOUR */
+            let tod = block.match(/today\s*.*tour.*[:\-]\s*(.*)/i);
+            if(tod) today = tod[1].trim();
+
+            addRow(sender,t.time,t.ampm,type,emp,name,monthly,today);
             continue;
         }
 
-        // NORMAL
-        addRow(sender, timeOnly, ampm, type, emp, monthly, today);
+        /* NORMAL */
+        addRow(sender,t.time,t.ampm,type,emp,name,monthly,today);
     }
 
-    wa_sms.value = "";
-}
-
-/* ADD ROW */
-function addRow(name, time, ampm, type, emp, monthly, today){
-    let row = `<tr>
-        <td>${sl2++}</td>
-        <td contenteditable>${name}</td>
-        <td contenteditable>${time}</td>
-        <td contenteditable>${ampm}</td>
-        <td contenteditable>${type}</td>
-        <td contenteditable>${emp}</td>
-        <td contenteditable>${monthly}</td>
-        <td contenteditable>${today}</td>
-    </tr>`;
-
-    waTable.querySelector("tbody").insertAdjacentHTML("beforeend", row);
+    wa_sms.value="";
 }
 
 /* EXPORT CSV */
 function exportTable(id,file){
-    let csv = "";
+    let csv="";
     document.querySelectorAll("#"+id+" tr").forEach(tr=>{
-        let r = [];
+        let row=[];
         tr.querySelectorAll("th,td").forEach(td=>{
-            r.push(`"${td.innerText.replace(/"/g,'""')}"`);
+            row.push(`"${td.innerText.replace(/"/g,'""')}"`);
         });
-        csv += r.join(",") + "\n";
+        csv+=row.join(",")+"\n";
     });
 
-    let a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv]));
-    a.download = file;
+    let a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([csv]));
+    a.download=file;
     a.click();
 }
 </script>
