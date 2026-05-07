@@ -2,209 +2,684 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>WhatsApp Tour Extractor</title>
-
+<title>Data Collection Tools</title>
 <style>
-body{
-    font-family: Arial;
-    background:#f2f4f7;
-}
-.container{
-    width:95%;
-    margin:20px auto;
-    background:#fff;
-    padding:20px;
-    box-shadow:0 0 10px #ccc;
-}
-textarea{
-    width:100%;
-    height:180px;
-    padding:10px;
-    font-size:14px;
-}
-button{
-    padding:8px 15px;
-    background:#0066cc;
-    color:#fff;
-    border:none;
-    cursor:pointer;
-    margin:5px;
-}
-button:hover{ background:#004999; }
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:20px;
-}
-th,td{
-    border:1px solid #aaa;
-    padding:6px;
-    font-size:13px;
-}
-th{ background:#e9eef3; }
-td[contenteditable]{ background:#fffbe6; }
+    * {
+        box-sizing: border-box;
+    }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f0f2f5;
+        margin: 0;
+        padding: 20px;
+    }
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    .header {
+        background: white;
+        border-radius: 16px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    h1 {
+        margin: 0;
+        color: #1e2a3e;
+        font-size: 22px;
+    }
+    .tab-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .tab-btn {
+        background: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        color: #334155;
+    }
+    .tab-btn.active {
+        background: #3b82f6;
+        color: white;
+    }
+    .tab-btn:hover:not(.active) {
+        background: #e2e8f0;
+    }
+    .tool-panel {
+        display: none;
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .tool-panel.active {
+        display: block;
+    }
+    .flex-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    .flex-col {
+        flex: 1;
+        min-width: 280px;
+    }
+    textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font-family: monospace;
+        font-size: 13px;
+        resize: vertical;
+    }
+    textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+    }
+    button {
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+        transition: 0.2s;
+        border: none;
+    }
+    .btn-blue { background: #3b82f6; color: white; }
+    .btn-green { background: #10b981; color: white; }
+    .btn-gray { background: #64748b; color: white; }
+    button:hover { transform: translateY(-1px); }
+    .table-wrapper {
+        overflow-x: auto;
+        max-height: 500px;
+        border-radius: 12px;
+        margin-top: 15px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    th {
+        background: #1e293b;
+        color: white;
+        padding: 10px 8px;
+        text-align: left;
+        position: sticky;
+        top: 0;
+        white-space: nowrap;
+    }
+    td {
+        padding: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: top;
+    }
+    td[contenteditable] {
+        background: #fffbeb;
+        cursor: text;
+    }
+    .sl-col {
+        background: #f1f5f9;
+        text-align: center;
+        font-weight: 600;
+        width: 50px;
+    }
+    label {
+        font-weight: 600;
+        font-size: 13px;
+        display: block;
+        margin-bottom: 5px;
+        color: #334155;
+    }
+    .night-badge {
+        background: #ede9fe;
+        color: #6d28d9;
+        padding: 2px 8px;
+        border-radius: 20px;
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        margin: 2px;
+    }
+    .in-badge {
+        background: #dbeafe;
+        color: #2563eb;
+        padding: 2px 6px;
+        border-radius: 20px;
+        display: inline-block;
+        font-size: 10px;
+        margin: 2px;
+    }
+    .hit-count {
+        background: #fef3c7;
+        color: #d97706;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 10px;
+    }
+    .night-list { font-size: 11px; line-height: 1.5; }
+    .night-item { margin-bottom: 4px; padding: 3px; background: #f8fafc; border-radius: 6px; }
+    .mobile-no { font-family: monospace; font-weight: 600; color: #2563eb; }
+    .filter-section {
+        background: #f1f5f9;
+        padding: 12px 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        display: flex;
+        gap: 15px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .filter-group label {
+        font-size: 11px;
+        margin-bottom: 0;
+    }
+    .time-input {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+    .time-input input {
+        padding: 6px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        width: 60px;
+        text-align: center;
+    }
+    .time-input select {
+        padding: 6px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+    }
+    .filter-range {
+        background: #e0e7ff;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #3730a3;
+    }
 </style>
 </head>
-
 <body>
 
 <div class="container">
+    <div class="header">
+        <h1>📊 Data Collection Tools</h1>
+    </div>
 
-<h2>📩 WhatsApp Tour Plan Extractor</h2>
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="showTool('sms')">📩 SMS Collector</button>
+        <button class="tab-btn" onclick="showTool('whatsapp')">💬 WhatsApp Extractor</button>
+        <button class="tab-btn" onclick="showTool('location')">📍 Home Location DB</button>
+    </div>
 
-<textarea id="wa_sms" placeholder="Paste WhatsApp Chat..."></textarea><br>
+    <!-- TOOL 1: SMS COLLECTOR -->
+    <div id="tool-sms" class="tool-panel active">
+        <div class="flex-row">
+            <div class="flex-col">
+                <label>Headlines (one per line)</label>
+                <textarea id="sms_head" rows="6">Date
+Name
+Designation
+Area
+Mobile
+Remarks</textarea>
+                <button class="btn-gray" onclick="applyHeadlines()" style="margin-top:8px;">⟳ Apply</button>
+            </div>
+            <div class="flex-col">
+                <label>Paste SMS</label>
+                <textarea id="sms_text" rows="6" placeholder="Paste SMS here..."></textarea>
+                <div style="margin-top:8px;">
+                    <button class="btn-blue" onclick="addRecord()">➕ Add</button>
+                    <button class="btn-green" onclick="exportTable('smsTable', 'SMS_Report.csv')">📊 Export</button>
+                </div>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table id="smsTable">
+                <thead><tr id="smsHeadRow"><th>SL</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
-<button onclick="addWA()">➕ Extract</button>
-<button onclick="exportTable('waTable','report.csv')">📊 Export</button>
+    <!-- TOOL 2: WHATSAPP EXTRACTOR -->
+    <div id="tool-whatsapp" class="tool-panel">
+        <label>Paste WhatsApp Chat</label>
+        <textarea id="wa_text" rows="8" placeholder="Paste WhatsApp chat here..."></textarea>
+        <div style="margin-top:10px;">
+            <button class="btn-blue" onclick="extractWA()">🔍 Extract</button>
+            <button class="btn-green" onclick="exportTable('waTable', 'WhatsApp_Report.csv')">📊 Export</button>
+        </div>
+        <div class="table-wrapper">
+            <table id="waTable">
+                <thead>
+                    <tr>
+                        <th>SL</th><th>Sender</th><th>Time</th><th>AM/PM</th><th>Type</th><th>EMP ID</th><th>Name</th><th>Monthly Tour</th><th>Today Tour</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
-<table id="waTable">
-<thead>
-<tr>
-<th>SL</th>
-<th>Name / Number</th>
-<th>Time</th>
-<th>AM/PM</th>
-<th>Type</th>
-<th>EMP ID</th>
-<th>Name</th>
-<th>Monthly Tour</th>
-<th>Today Tour</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
+    <!-- TOOL 3: HOME LOCATION DATABASE -->
+    <div id="tool-location" class="tool-panel">
+        <label>Paste Location Data (with headers)</label>
+        <textarea id="location_data" rows="6" placeholder="Paste your location data here..."></textarea>
+        <div style="margin-top:10px;">
+            <button class="btn-blue" onclick="analyzeLocation()">🔍 Analyze</button>
+            <button class="btn-green" onclick="exportLocationExcel()" id="locationExportBtn" style="display:none;">📊 Export</button>
+        </div>
+        <div id="locationError" style="margin-top:10px;"></div>
+        
+        <div id="locationResults" style="display:none; margin-top:20px;">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label>Start</label>
+                    <div class="time-input">
+                        <input type="number" id="locStartHour" value="6" min="1" max="12">
+                        <span>:</span>
+                        <input type="number" id="locStartMinute" value="0" min="0" max="59">
+                        <select id="locStartAmPm"><option value="AM">AM</option><option value="PM">PM</option></select>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>End</label>
+                    <div class="time-input">
+                        <input type="number" id="locEndHour" value="7" min="1" max="12">
+                        <span>:</span>
+                        <input type="number" id="locEndMinute" value="0" min="0" max="59">
+                        <select id="locEndAmPm"><option value="PM">PM</option><option value="AM">AM</option></select>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <button class="btn-blue" onclick="applyLocationFilter()">Apply</button>
+                </div>
+                <div class="filter-group">
+                    <button class="btn-gray" onclick="resetLocationFilter()">Reset</button>
+                </div>
+                <div class="filter-range" id="locFilterRange">06:00 AM - 07:00 PM</div>
+            </div>
+            <div class="table-wrapper">
+                <table id="locationTable">
+                    <thead>
+                        <tr>
+                            <th>Emp ID</th><th>Mobile</th><th>Name</th><th>Dept</th>
+                            <th>🌙 Night Locations (HOME)</th><th>🏠 Return Hits</th><th>Records</th>
+                        </tr>
+                    </thead>
+                    <tbody id="locationTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-let sl = 1;
-
-/* CLEAN TIME */
-function cleanTime(raw){
-    raw = raw.replace(/[^0-9:apm\s]/gi,'').trim();
-    let p = raw.split(/\s+/);
-    return {
-        time: p[0] || "",
-        ampm: (p[1] || "").toUpperCase()
-    };
+// ============ UTILS ============
+function showTool(tool) {
+    document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (tool === 'sms') {
+        document.getElementById('tool-sms').classList.add('active');
+        document.querySelector('.tab-btn').classList.add('active');
+    } else if (tool === 'whatsapp') {
+        document.getElementById('tool-whatsapp').classList.add('active');
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    } else {
+        document.getElementById('tool-location').classList.add('active');
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+    }
 }
 
-/* ADD ROW */
-function addRow(sender,time,ampm,type,emp,name,monthly,today){
+function exportTable(tableId, filename) {
+    let table = document.getElementById(tableId);
+    let rows = table.querySelectorAll("tr");
+    let csv = [];
+    for (let row of rows) {
+        let rowData = [];
+        for (let cell of row.querySelectorAll("th,td")) {
+            let text = cell.innerText.trim().replace(/"/g, '""');
+            rowData.push(`"${text}"`);
+        }
+        csv.push(rowData.join(","));
+    }
+    if (csv.length <= 1) { alert("No data to export"); return; }
+    let blob = new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv" });
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+}
 
+function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+function escapeRegex(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// ============ SMS COLLECTOR ============
+let smsSl = 1, currentHeadlines = [];
+
+function applyHeadlines() {
+    let headlines = document.getElementById("sms_head").value.split("\n").filter(h => h.trim());
+    if (!headlines.length) { alert("Enter at least one headline"); return; }
+    currentHeadlines = headlines;
+    let headRow = document.getElementById("smsHeadRow");
+    headRow.innerHTML = '<th>SL</th>';
+    headlines.forEach(h => headRow.innerHTML += `<th>${escapeHtml(h.trim())}</th>`);
+    document.querySelector("#smsTable tbody").innerHTML = "";
+    smsSl = 1;
+}
+
+function extractValue(text, headline) {
+    let patterns = [
+        new RegExp("(?:^|\\n)" + escapeRegex(headline) + "\\s*[:\\-]\\s*(.*?)(?:\\n|$)", "i"),
+        new RegExp("(?:^|\\n)" + escapeRegex(headline) + "\\s+(.*?)(?:\\n|$)", "i")
+    ];
+    for (let p of patterns) {
+        let m = text.match(p);
+        if (m && m[1]) return m[1].trim().split(/\r?\n/)[0].trim();
+    }
+    return "";
+}
+
+function addRecord() {
+    let text = document.getElementById("sms_text").value;
+    if (!text.trim()) { alert("Paste SMS first"); return; }
+    let headlines = document.getElementById("sms_head").value.split("\n").filter(h => h.trim());
+    if (!headlines.length) { alert("Set headlines first"); return; }
+    if (JSON.stringify(currentHeadlines) !== JSON.stringify(headlines)) applyHeadlines();
+    let rowHtml = `<tr><td class="sl-col">${smsSl++}</td>`;
+    for (let h of headlines) rowHtml += `<td contenteditable="true">${escapeHtml(extractValue(text, h))}</td>`;
+    rowHtml += `</tr>`;
+    document.querySelector("#smsTable tbody").insertAdjacentHTML("beforeend", rowHtml);
+    document.getElementById("sms_text").value = "";
+}
+
+// ============ WHATSAPP EXTRACTOR ============
+let waSl = 1;
+
+function cleanTime(raw) {
+    raw = raw.replace(/[^0-9:apm\s]/gi, '').trim();
+    let parts = raw.split(/\s+/);
+    return { time: parts[0] || "", ampm: (parts[1] || "").toUpperCase() };
+}
+
+function addWARow(sender, time, ampm, type, emp, name, monthly, today) {
     let row = `<tr>
-        <td>${sl++}</td>
-        <td contenteditable>${sender}</td>
-        <td contenteditable>${time}</td>
-        <td contenteditable>${ampm}</td>
-        <td contenteditable>${type}</td>
-        <td contenteditable>${emp}</td>
-        <td contenteditable>${name}</td>
-        <td contenteditable>${monthly}</td>
-        <td contenteditable>${today}</td>
+        <td>${waSl++}</td>
+        <td contenteditable>${escapeHtml(sender)}</td>
+        <td contenteditable>${escapeHtml(time)}</td>
+        <td contenteditable>${escapeHtml(ampm)}</td>
+        <td contenteditable>${escapeHtml(type)}</td>
+        <td contenteditable>${escapeHtml(emp)}</td>
+        <td contenteditable>${escapeHtml(name)}</td>
+        <td contenteditable>${escapeHtml(monthly)}</td>
+        <td contenteditable>${escapeHtml(today)}</td>
     </tr>`;
-
-    waTable.querySelector("tbody").insertAdjacentHTML("beforeend",row);
+    document.querySelector("#waTable tbody").insertAdjacentHTML("beforeend", row);
 }
 
-/* MAIN PARSER */
-function addWA(){
-
-    let text = wa_sms.value;
+function extractWA() {
+    let text = document.getElementById("wa_text").value;
+    if (!text.trim()) { alert("Paste WhatsApp chat first"); return; }
+    
     let lines = text.split("\n");
-
     let regex = /^(\d{2}\/\d{2}\/\d{2}),\s([\d:]+[^-]*)\s-\s(.+?):\s?(.*)$/i;
-
-    for(let i=0;i<lines.length;i++){
-
+    
+    for (let i = 0; i < lines.length; i++) {
         let line = lines[i];
         let m = line.match(regex);
-        if(!m) continue;
-
+        if (!m) continue;
+        
         let t = cleanTime(m[2]);
         let sender = m[3];
         let msg = m[4].trim();
-
-        let type="normal";
-        let emp="";
-        let name="";
-        let monthly="";
-        let today="";
-
-        /* MEDIA */
-        if(msg.includes("<Media omitted>")){
-            type="media";
-            addRow(sender,t.time,t.ampm,type,emp,name,monthly,today);
-            continue;
-        }
-
-        /* LOCATION */
-        if(msg.toLowerCase().includes("location") || msg.includes("maps.google")){
-            type="map";
-            addRow(sender,t.time,t.ampm,type,emp,name,monthly,today);
-            continue;
-        }
-
-        /* TOUR BLOCK */
-        if(msg.toLowerCase().includes("tour")){
-
+        let type = "normal", emp = "", name = "", monthly = "", today = "";
+        
+        if (msg.includes("<Media omitted>")) {
+            type = "media";
+        } else if (msg.toLowerCase().includes("location") || msg.includes("maps.google")) {
+            type = "map";
+        } else if (msg.toLowerCase().includes("tour")) {
             let block = msg;
-            let j = i+1;
-
-            while(j<lines.length && !lines[j].match(regex)){
-                block += "\n"+lines[j];
+            let j = i + 1;
+            while (j < lines.length && !lines[j].match(regex)) {
+                block += "\n" + lines[j];
                 j++;
             }
-
-            i = j-1;
-
-            type="tour plan";
-
-            /* EMP ID */
+            i = j - 1;
+            type = "tour plan";
+            
             let empMatch = block.match(/emp\s*id[:\s\-]*([0-9]+)/i);
-            if(empMatch) emp = empMatch[1];
-
-            /* NAME */
+            if (empMatch) emp = empMatch[1];
             let nameMatch = block.match(/name[:\s\-]*(.*)/i);
-            if(nameMatch) name = nameMatch[1].split("\n")[0].trim();
-
-            /* MONTHLY TOUR */
-            let mon = block.match(/monthly\s*.*tour.*[:\-]\s*(.*)/i);
-            if(mon) monthly = mon[1].trim();
-
-            /* TODAY TOUR */
-            let tod = block.match(/today\s*.*tour.*[:\-]\s*(.*)/i);
-            if(tod) today = tod[1].trim();
-
-            addRow(sender,t.time,t.ampm,type,emp,name,monthly,today);
-            continue;
+            if (nameMatch) name = nameMatch[1].split("\n")[0].trim();
+            let monMatch = block.match(/monthly\s*.*tour.*[:\-]\s*(.*)/i);
+            if (monMatch) monthly = monMatch[1].trim();
+            let todMatch = block.match(/today\s*.*tour.*[:\-]\s*(.*)/i);
+            if (todMatch) today = todMatch[1].trim();
         }
-
-        /* NORMAL */
-        addRow(sender,t.time,t.ampm,type,emp,name,monthly,today);
+        addWARow(sender, t.time, t.ampm, type, emp, name, monthly, today);
     }
-
-    wa_sms.value="";
+    
+    document.getElementById("wa_text").value = "";
+    alert(`Extracted ${waSl-1} records`);
 }
 
-/* EXPORT CSV */
-function exportTable(id,file){
-    let csv="";
-    document.querySelectorAll("#"+id+" tr").forEach(tr=>{
-        let row=[];
-        tr.querySelectorAll("th,td").forEach(td=>{
-            row.push(`"${td.innerText.replace(/"/g,'""')}"`);
+// ============ HOME LOCATION DATABASE ============
+let locationResultsStore = null, allLocationEmployees = null;
+
+function convertTo24HourLoc(hour, ampm) { return ampm === 'AM' ? (hour === 12 ? 0 : hour) : (hour === 12 ? 12 : hour + 12); }
+function formatTimeLoc(h24, m) { let h12 = h24 % 12; if (h12 === 0) h12 = 12; return `${h12}:${m.toString().padStart(2,'0')} ${h24 >= 12 ? 'PM' : 'AM'}`; }
+
+function parseDateTimeLoc(str) {
+    let p = /(\d+)\s+(\w+)\s+(\d+)\s+(\d+):(\d+)\s+(AM|PM)/i.exec(str);
+    if (!p) return null;
+    let months = {'Jan':0,'Feb':1,'Mar':2,'Apr':3,'May':4,'Jun':5,'Jul':6,'Aug':7,'Sep':8,'Oct':9,'Nov':10,'Dec':11};
+    let hour = parseInt(p[4]), minute = parseInt(p[5]), ampm = p[6].toUpperCase();
+    if (ampm === 'PM' && hour !== 12) hour += 12;
+    if (ampm === 'AM' && hour === 12) hour = 0;
+    return new Date(2000 + parseInt(p[3]), months[p[2]], parseInt(p[1]), hour, minute);
+}
+
+function parseLocationData(raw) {
+    let lines = raw.trim().split('\n');
+    if (lines.length < 2) return [];
+    let isTab = lines[0].includes('\t');
+    let headers = lines[0].split(isTab ? '\t' : ',');
+    let idx = { empId: -1, name: -1, mobile: -1, dept: -1, address: -1, timeSpan: -1, hits: -1 };
+    headers.forEach((h, i) => { let l = h.toLowerCase(); if (l.includes('emp id')) idx.empId = i; if (l.includes('name')) idx.name = i; if (l.includes('mobile')) idx.mobile = i; if (l.includes('department')) idx.dept = i; if (l.includes('address')) idx.address = i; if (l.includes('time span')) idx.timeSpan = i; if (l.includes('location request hits')) idx.hits = i; });
+    let records = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        let vals = lines[i].split(isTab ? '\t' : ',');
+        let timeSpan = idx.timeSpan >= 0 ? vals[idx.timeSpan] : '';
+        let start = timeSpan ? parseDateTimeLoc(timeSpan.split(/\s+to\s+/i)[0]) : null;
+        if (!start) continue;
+        records.push({
+            empId: idx.empId >= 0 ? vals[idx.empId] : '',
+            name: idx.name >= 0 ? vals[idx.name] : '',
+            mobile: idx.mobile >= 0 ? vals[idx.mobile] : '',
+            dept: idx.dept >= 0 ? vals[idx.dept] : '',
+            address: idx.address >= 0 ? vals[idx.address] : '',
+            hour: start.getHours(), minute: start.getMinutes(), date: start,
+            hits: idx.hits >= 0 ? parseInt(vals[idx.hits]) || 1 : 1
         });
-        csv+=row.join(",")+"\n";
-    });
-
-    let a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob([csv]));
-    a.download=file;
-    a.click();
+    }
+    return records;
 }
-</script>
 
+function getAllLocationEmployees(records) {
+    let map = new Map();
+    for (let r of records) {
+        if (!map.has(r.empId)) map.set(r.empId, { name: r.name, mobile: r.mobile, dept: r.dept, records: [] });
+        map.get(r.empId).records.push(r);
+    }
+    let emps = [];
+    for (let [id, data] of map) {
+        let night = new Map();
+        for (let r of data.records) if (r.hour >= 0 && r.hour < 4) night.set(r.address, (night.get(r.address) || 0) + r.hits);
+        emps.push({ empId: id, name: data.name, mobile: data.mobile, dept: data.dept, nightLocations: night, allRecords: data.records });
+    }
+    emps.sort((a,b) => a.empId.localeCompare(b.empId));
+    return emps;
+}
+
+function calcReturnHits(emp, startMin, endMin) {
+    let homeSet = new Set(emp.nightLocations.keys());
+    let after6 = emp.allRecords.filter(r => { let tm = r.hour * 60 + r.minute; return r.hour >= 6 && tm >= startMin && tm <= endMin; });
+    let nonHome = after6.filter(r => !homeSet.has(r.address));
+    let departure = null;
+    if (nonHome.length) { nonHome.sort((a,b) => a.date - b.date); departure = nonHome[0].date; }
+    let returnHits = [], total = 0;
+    if (departure) {
+        for (let r of emp.allRecords) {
+            let tm = r.hour * 60 + r.minute;
+            if (r.date > departure && tm <= endMin && homeSet.has(r.address)) {
+                returnHits.push({ time: formatTimeLoc(r.hour, r.minute), hits: r.hits });
+                total += r.hits;
+            }
+        }
+    }
+    let inRange = emp.allRecords.filter(r => { let tm = r.hour * 60 + r.minute; return tm >= startMin && tm <= endMin; });
+    return { returnHits, totalReturnHits: total, totalRecords: inRange.length };
+}
+
+function renderLocationResults(results) {
+    let tbody = document.getElementById('locationTableBody');
+    tbody.innerHTML = '';
+    for (let emp of results) {
+        let nightHtml = '<div class="night-list">';
+        let sorted = Array.from(emp.nightLocations.entries()).sort((a,b) => b[1] - a[1]);
+        for (let [addr, hits] of sorted) {
+            let short = addr.length > 50 ? addr.substring(0,47)+'...' : addr;
+            nightHtml += `<div class="night-item"><span class="night-badge">🌙 ${hits}</span> ${escapeHtml(short)}</div>`;
+        }
+        if (!sorted.length) nightHtml = '<span class="night-badge">No night data</span>';
+        nightHtml += '</div>';
+        let returnHtml = '';
+        if (emp.returnHits.length) {
+            returnHtml = '<div>';
+            for (let h of emp.returnHits) returnHtml += `<span class="in-badge">🕐 ${h.time} (${h.hits})</span> `;
+            returnHtml += `<div class="hit-count">Total: ${emp.totalReturnHits}</div></div>`;
+        } else returnHtml = '<span class="night-badge">No return hits</span>';
+        let row = tbody.insertRow();
+        row.insertCell(0).innerHTML = `<strong>${escapeHtml(emp.empId)}</strong>`;
+        row.insertCell(1).innerHTML = `<span class="mobile-no">${escapeHtml(emp.mobile)}</span>`;
+        row.insertCell(2).innerText = emp.name;
+        row.insertCell(3).innerText = emp.dept;
+        row.insertCell(4).innerHTML = nightHtml;
+        row.insertCell(5).innerHTML = returnHtml;
+        row.insertCell(6).innerHTML = `<span class="hit-count">${emp.totalRecords}</span>`;
+    }
+}
+
+function applyLocationFilter() {
+    if (!allLocationEmployees) return;
+    let sh = parseInt(document.getElementById('locStartHour').value);
+    let sm = parseInt(document.getElementById('locStartMinute').value);
+    let sa = document.getElementById('locStartAmPm').value;
+    let eh = parseInt(document.getElementById('locEndHour').value);
+    let em = parseInt(document.getElementById('locEndMinute').value);
+    let ea = document.getElementById('locEndAmPm').value;
+    let start24 = convertTo24HourLoc(sh, sa);
+    let end24 = convertTo24HourLoc(eh, ea);
+    document.getElementById('locFilterRange').innerHTML = `${sh}:${sm.toString().padStart(2,'0')} ${sa} - ${eh}:${em.toString().padStart(2,'0')} ${ea}`;
+    let startMin = start24 * 60 + sm;
+    let endMin = end24 * 60 + em;
+    let results = [];
+    for (let emp of allLocationEmployees) {
+        let res = calcReturnHits(emp, startMin, endMin);
+        results.push({ ...emp, returnHits: res.returnHits, totalReturnHits: res.totalReturnHits, totalRecords: res.totalRecords });
+    }
+    renderLocationResults(results);
+}
+
+function resetLocationFilter() {
+    if (!allLocationEmployees) return;
+    document.getElementById('locStartHour').value = 6;
+    document.getElementById('locStartMinute').value = 0;
+    document.getElementById('locStartAmPm').value = 'AM';
+    document.getElementById('locEndHour').value = 7;
+    document.getElementById('locEndMinute').value = 0;
+    document.getElementById('locEndAmPm').value = 'PM';
+    document.getElementById('locFilterRange').innerHTML = '06:00 AM - 07:00 PM';
+    let results = [];
+    for (let emp of allLocationEmployees) {
+        let res = calcReturnHits(emp, 360, 1140);
+        results.push({ ...emp, returnHits: res.returnHits, totalReturnHits: res.totalReturnHits, totalRecords: res.totalRecords });
+    }
+    renderLocationResults(results);
+}
+
+function exportLocationExcel() {
+    if (!locationResultsStore) return;
+    let csv = [['Emp ID','Mobile','Name','Dept','Night Locations (12AM-4AM)','Return Hits','Total Return Hits','Records']];
+    for (let emp of locationResultsStore) {
+        let night = Array.from(emp.nightLocations.entries()).map(([a,h]) => `${h}x: ${a.replace(/,/g,';')}`).join(' | ');
+        let ret = emp.returnHits.map(h => `${h.time}:${h.hits}`).join('; ');
+        csv.push([`"${emp.empId}"`,`"${emp.mobile}"`,`"${emp.name}"`,`"${emp.dept}"`,`"${night}"`,`"${ret}"`,emp.totalReturnHits,emp.totalRecords]);
+    }
+    let blob = new Blob(["\uFEFF" + csv.map(r => r.join(',')).join('\n')], {type: 'text/csv'});
+    let link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'employee_location_data.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+}
+
+function analyzeLocation() {
+    let input = document.getElementById('location_data').value;
+    if (!input.trim()) { alert('Paste your data'); return; }
+    document.getElementById('locationResults').style.display = 'none';
+    document.getElementById('locationExportBtn').style.display = 'none';
+    document.getElementById('locationError').innerHTML = '<div style="color:#666;">Processing...</div>';
+    setTimeout(() => {
+        let records = parseLocationData(input);
+        if (!records.length) { alert('No valid data'); document.getElementById('locationError').innerHTML = '<div style="color:red;">No valid data</div>'; return; }
+        allLocationEmployees = getAllLocationEmployees(records);
+        let results = [];
+        for (let emp of allLocationEmployees) {
+            let res = calcReturnHits(emp, 360, 1140);
+            results.push({ ...emp, returnHits: res.returnHits, totalReturnHits: res.totalReturnHits, totalRecords: res.totalRecords });
+        }
+        locationResultsStore = results;
+        renderLocationResults(results);
+        document.getElementById('locationResults').style.display = 'block';
+        document.getElementById('locationExportBtn').style.display = 'inline-block';
+        document.getElementById('locationError').innerHTML = `<div style="background:#dcfce7; padding:8px; border-radius:8px;">✅ ${records.length} records, ${results.length} employees</div>`;
+    }, 50);
+}
+
+// Initialize SMS on load
+window.addEventListener('DOMContentLoaded', function() {
+    let defaultHeads = ["Date", "Name", "Designation", "Area", "Mobile", "Remarks"];
+    currentHeadlines = defaultHeads;
+    let headRow = document.getElementById("smsHeadRow");
+    headRow.innerHTML = '<th>SL</th>';
+    defaultHeads.forEach(h => headRow.innerHTML += `<th>${h}</th>`);
+    document.getElementById("sms_head").value = defaultHeads.join("\n");
+});
+</script>
 </body>
 </html>
